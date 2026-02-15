@@ -14,13 +14,44 @@
             align-items: center;
             height: 100vh;
         }
+
+        #loader {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 6px solid #ffffff33;
+            border-top: 6px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+<div id="loader">
+    <div class="spinner"></div>
+</div>
+
 
 <script>
     let gameStarted = false;
-
+    let gamePaused = false;
+    
+    let pauseText;
     let livesText;
     let player;
     let cursors;
@@ -73,6 +104,8 @@
     }
 
     function create() {
+        document.getElementById('loader').style.display = 'none';
+        
         gameStarted = false;
 
         score = 0;
@@ -125,6 +158,38 @@
         this.physics.add.overlap(player, fruits, collectFruit, null, this);
 
         showStartScreen.call(this);
+
+        this.input.keyboard.on('keydown-ESC', () => {
+            if (!gameStarted || gameEnded) return;
+
+            gamePaused = !gamePaused;
+
+            if (gamePaused) {
+                // Pause gameplay
+                this.physics.world.pause();
+                this.spawnEvent.paused = true;
+                if (this.bgm && this.bgm.isPlaying) this.bgm.pause();
+
+                // Show overlay
+                pauseText = this.add.text(400, 300, 'PAUSED', {
+                    fontSize: '64px',
+                    fontFamily: 'Fredoka',
+                    color: '#FFFFFF',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    padding: { x: 30, y: 15 }
+                }).setOrigin(0.5);
+
+            } else {
+                this.physics.world.resume();
+                if (this.spawnEvent) this.spawnEvent.paused = false;
+                if (this.bgm) this.bgm.resume();
+
+                if (pauseText) {
+                    pauseText.destroy();
+                    pauseText = null;
+                }
+            }
+        });
     }
 
     function showStartScreen() {
@@ -188,7 +253,7 @@
 
     function update() {
 
-        if (!gameStarted || gameEnded) {
+        if (!gameStarted || gameEnded || gamePaused) {
             player.setVelocityX(0);
             return;
         }
