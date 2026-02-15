@@ -1,5 +1,5 @@
 # html5-casual-games
-This repository contains simple, lightweight 2D browser games built for demonstration purposes.
+This repository contains simple, lightweight 2D browser games built for demonstration purposes. https://ryezheld.github.io/html5-casual-games/fruits_picker/
 1. Fruit Catcher (Phaser 3)
 - A casual object-catching game built using:
 - Phaser 3
