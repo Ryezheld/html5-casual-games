@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Fruits Catcher!</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    let gameStarted = false;
+
+    let livesText;
+    let player;
+    let cursors;
+    let fruits;
+    let scoreText;
+    let levelText;
+
+    const FRUIT_SIZE = 48;
+    const PLAYER_SIZE = 80;
+
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 0 },
+                debug: false
+            }
+        },
+        scene: {
+            preload,
+            create,
+            update
+        }
+    };
+
+    const game = new Phaser.Game(config);
+
+    function preload() {
+        this.load.image('bg', 'assets/images/bg.jpg');
+        this.load.image('player', 'assets/images/basket.png');
+        this.load.image('apple', 'assets/images/apple.png');
+        this.load.image('banana', 'assets/images/banana.png');
+        this.load.image('melon', 'assets/images/melon.png');
+        this.load.image('durian', 'assets/images/durian.png');
+        this.load.image('watermelon', 'assets/images/watermelon.png');
+        this.load.audio('catch', 'assets/sounds/catch.wav');
+        this.load.audio('miss', 'assets/sounds/miss.wav');
+        this.load.audio('bgm', 'assets/sounds/bgm.wav');
+        this.load.audio('win', 'assets/sounds/win.wav');
+        this.load.audio('lose', 'assets/sounds/lose.wav');
+    }
+
+    function create() {
+        gameStarted = false;
+
+        score = 0;
+        level = 1;
+        lives = 10;
+        spawnDelay = 1000;
+        fallSpeed = 200;
+        playerSpeed = 500;
+        nextLevelScore = 10;
+        gameEnded = false;
+
+        this.add.image(400, 300, 'bg');
+        this.sfx = {
+            catch: this.sound.add('catch', { volume: 0.3 }),
+            miss: this.sound.add('miss', { volume: 0.3 }),
+            win: this.sound.add('win', { volume: 0.4 }),
+            lose: this.sound.add('lose', { volume: 0.4 })
+        };
+
+        this.bgm = this.sound.add('bgm', {
+            loop: true,
+            volume: 0.4,
+            rate: 1
+        });
+
+        player = this.physics.add.sprite(400, 550, 'player');
+        player.setCollideWorldBounds(true);
+        player.setDisplaySize(PLAYER_SIZE, PLAYER_SIZE);
+
+        fruits = this.physics.add.group();
+
+        cursors = this.input.keyboard.createCursorKeys();
+
+        scoreText = this.add.text(20, 20, 'Score: 0', {
+            fontSize: '24px',
+            fontFamily: 'Fredoka',
+            color: '#4A4A4A'
+        });
+        levelText = this.add.text(20, 50, 'Level: 1', {
+            fontSize: '24px',
+            fontFamily: 'Fredoka',
+            color: '#4A4A4A'
+        });
+        livesText = this.add.text(20, 80, 'Lives: 10', {
+            fontSize: '24px',
+            fontFamily: 'Fredoka',
+            color: '#4A4A4A'
+        });
+
+        this.physics.add.overlap(player, fruits, collectFruit, null, this);
+
+        showStartScreen.call(this);
+    }
+
+    function showStartScreen() {
+
+        const baseBg = '#FCE3BB';
+        const hoverBg = '#FFD28A';
+        const textColor = '#4A4A4A';
+
+        const title = this.add.text(400, 220, 'FRUIT CATCHER', {
+            fontSize: '64px',
+            fontFamily: 'Fredoka',
+            color: '#428F4B',
+            backgroundColor: baseBg,
+            padding: { x: 30, y: 15 }
+        }).setOrigin(0.5);
+
+        const playButton = this.add.text(400, 320, 'Play', {
+            fontSize: '40px',
+            fontFamily: 'Fredoka',
+            color: textColor,
+            backgroundColor: baseBg,
+            stroke: textColor,
+            padding: { x: 40, y: 15 }
+        })
+        .setOrigin(0.5)
+        .setInteractive();
+
+        playButton.on('pointerover', () => {
+            playButton.setStyle({ backgroundColor: hoverBg });
+            playButton.setScale(1.05);
+        });
+
+        playButton.on('pointerout', () => {
+            playButton.setStyle({ backgroundColor: baseBg });
+            playButton.setScale(1);
+        });
+
+        playButton.on('pointerdown', () => {
+
+            title.destroy();
+            playButton.destroy();
+
+            gameStarted = true;
+
+            this.sound.unlock();
+            this.bgm.play({ volume: 0 });
+            this.tweens.add({
+                targets: this.bgm,
+                volume: 0.4,
+                duration: 1000
+            });
+
+            this.spawnEvent = this.time.addEvent({
+                delay: spawnDelay,
+                callback: spawnFruit,
+                callbackScope: this,
+                loop: true
+            });
+        });
+    }
+
+    function update() {
+
+        if (!gameStarted || gameEnded) {
+            player.setVelocityX(0);
+            return;
+        }
+
+        if (cursors.left.isDown) {
+            player.setVelocityX(-playerSpeed);
+        } else if (cursors.right.isDown) {
+            player.setVelocityX(playerSpeed);
+        } else {
+            player.setVelocityX(0);
+        }
+
+        fruits.getChildren().forEach(fruit => {
+            if (fruit.y > 600) {
+                fruit.destroy();
+                this.sfx.miss.play();
+
+                if (!gameEnded) {
+                    lives--;
+                    livesText.setText('Lives: ' + lives);
+
+                    if (lives <= 0) {
+                        endGame.call(this, false);
+                    }
+                }
+            }
+        });
+    }
+
+    function spawnFruit() {
+        if (gameEnded) return;
+        const x = Phaser.Math.Between(50, 750);
+        const fruitPool = getFruitPoolByLevel(level);
+        const randomFruit = Phaser.Utils.Array.GetRandom(fruitPool);
+        const fruit = fruits.create(x, 0, randomFruit.key);
+
+        fruit.setVelocityY(fallSpeed);
+        fruit.points = randomFruit.points;
+        fruit.setDisplaySize(FRUIT_SIZE, FRUIT_SIZE);
+    }
+
+    function getFruitPoolByLevel(level) {
+        let pool = [];
+
+        let basicWeight;
+        let durianWeight;
+        let watermelonWeight = 0;
+
+        if (level < 5) {
+            basicWeight = 30;
+            durianWeight = 10;
+        } else if (level < 10) {
+            basicWeight = 30 - level * 1.5;
+            durianWeight = 10 + level * 1;
+            watermelonWeight = (level - 4) * 2;
+        } else {
+            basicWeight = 15;
+            durianWeight = 30;
+            watermelonWeight = 15;
+        }
+        
+        addFruit(pool, 'apple', 1, basicWeight);
+        addFruit(pool, 'banana', 2, basicWeight);
+        addFruit(pool, 'melon', 3, basicWeight);
+        addFruit(pool, 'durian', 5, durianWeight);
+
+        if (watermelonWeight > 0) {
+            addFruit(pool, 'watermelon', 10, watermelonWeight);
+        }
+
+        return pool;
+    }
+
+    function addFruit(pool, key, points, weight) {
+        for (let i = 0; i < Math.floor(weight); i++) {
+            pool.push({ key, points });
+        }
+    }
+
+    function collectFruit(player, fruit) {
+
+        score += fruit.points;
+        scoreText.setText('Score: ' + score);
+
+        fruit.destroy();
+        this.sfx.catch.play();
+
+        if (score >= nextLevelScore && level < 15) {
+            levelUp.call(this);
+        }
+    }
+
+    function levelUp() {
+        level++;
+        levelText.setText('Level: ' + level);
+
+        let progress = (level - 1) / 14;
+        let targetRate = 1 + (0.05 * progress);
+        
+        this.tweens.add({
+            targets: this.bgm,
+            rate: targetRate,
+            duration: 1500,
+            ease: 'Sine.easeInOut'
+        });
+
+        if (level >= 15) {
+            endGame.call(this, true);
+            return;
+        }
+
+        spawnDelay = Math.max(450, spawnDelay - 50);
+        fallSpeed += 25;
+        playerSpeed += 25;
+
+        nextLevelScore += Math.floor(10 + (level) * 5);
+
+        this.spawnEvent.remove(false);
+
+        this.spawnEvent = this.time.addEvent({
+            delay: spawnDelay,
+            callback: spawnFruit,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    function endGame(win) {
+
+        const baseBg = '#FCE3BB';
+        const hoverBg = '#FFD28A';
+        const textColor = win ? '#428F4B' : '#A05A00';
+
+        gameEnded = true;
+        this.bgm.stop();
+
+        if (win) {
+            this.sfx.win.play();
+        } else {
+            this.sfx.lose.play();
+        }
+
+        if (this.spawnEvent) {
+            this.spawnEvent.remove();
+            this.spawnEvent = null;
+        }
+        player.setVelocityX(0);
+
+        const message = win ? 'YOU WIN!' : 'GAME OVER';
+
+        const messageText = this.add.text(400, 250, message, {
+            fontSize: '56px',
+            fontFamily: 'Fredoka',
+            color: textColor,
+            backgroundColor: baseBg,
+            padding: { x: 30, y: 15 }
+        });
+        messageText.setOrigin(0.5);
+        messageText.setShadow(0, 3, 'rgba(0,0,0,0.15)', 6);
+
+        const restartText = this.add.text(400, 350, 'Restart', {
+            fontSize: '32px',
+            fontFamily: 'Fredoka',
+            color: textColor,
+            backgroundColor: baseBg,
+            padding: { x: 30, y: 15 }
+        })
+        .setOrigin(0.5)
+        .setInteractive();
+
+        restartText.on('pointerover', () => {
+            restartText.setStyle({ backgroundColor: hoverBg });
+            restartText.setScale(1.05);
+        });
+
+        restartText.on('pointerout', () => {
+            restartText.setStyle({ backgroundColor: baseBg });
+            restartText.setScale(1);
+        });
+
+        restartText.on('pointerdown', () => {
+            this.scene.restart();
+        });
+    }
+</script>
+
+</body>
+</html>
