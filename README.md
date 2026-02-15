@@ -23,3 +23,9 @@ This repository contains simple, lightweight 2D browser games built for demonstr
 - Win detection
 - Game reset
 - Simple responsive layout
+
+How to play Fruit Catcher:
+- Press Left Arrow and Right Arrow keys to move
+- Press Esc to pause and unpause the game
+- You have 10 lives. Each time you failed to catch a fruit, you lose 1.
+- Reach Lv 15 to win.
