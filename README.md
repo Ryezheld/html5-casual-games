@@ -1,2 +1,25 @@
 # html5-casual-games
-Collection of lightweight 2D browser games built with Phaser 3 and Vanilla JavaScript.
+This repository contains simple, lightweight 2D browser games built for demonstration purposes.
+1. Fruit Catcher (Phaser 3)
+- A casual object-catching game built using:
+- Phaser 3
+- Arcade Physics
+- Progressive difficulty scaling
+- Audio integration
+- State management (Start, Win, Game Over)
+- Features:
+- Weighted fruit spawning
+- Increasing difficulty per level
+- Background music speed scaling
+- Sound effects
+- Restart system
+2. Tic Tac Toe
+- A classic Tic Tac Toe game built using:
+- HTML
+- CSS
+- Vanilla JavaScript
+- Features:
+- Player vs Player mode
+- Win detection
+- Game reset
+- Simple responsive layout
